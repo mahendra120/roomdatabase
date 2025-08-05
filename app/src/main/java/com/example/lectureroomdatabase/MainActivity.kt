@@ -1,5 +1,6 @@
 package com.example.lectureroomdatabase
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -48,6 +49,8 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    var page by mutableStateOf("login")
+
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,17 +59,35 @@ class MainActivity : ComponentActivity() {
             LectureRoomDatabaseTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
-                        RegisterScreen(onRegisterClick = { email, password ->
+                        when(page)
+                        {
+                            "login" -> LoginScreen { email,password ->
+                                GlobalScope.launch {
+                                    var user = AppDatabase.getInstance(this@MainActivity)
+                                        .userDao()
+                                        .isUserFound(email,password)
 
-                            val user = User(email = email, password = password)
-
-                            GlobalScope.launch(Dispatchers.IO) {
-                                AppDatabase.getInstance(this@MainActivity)
-                                    .userDao()
-                                    .addUser(user)
+                                    runOnUiThread {
+                                        user?.let {
+                                            val intent = Intent(this@MainActivity,HomeActivity::class.java)
+                                            startActivity(intent)
+                                            finish()
+                                        } ?: run {
+                                            Toast.makeText(this@MainActivity, "user not found!!", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
                             }
-
-                        })
+                            "register" -> RegisterScreen { email,password ->
+                                val user = User(email = email, password = password)
+                                GlobalScope.launch(Dispatchers.IO) {
+                                    AppDatabase.getInstance(this@MainActivity)
+                                        .userDao()
+                                        .addUser(user)
+                                    page = "login"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -155,6 +176,112 @@ class MainActivity : ComponentActivity() {
                         email = ""
                         password = ""
                     }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Register")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Register Button
+            Button(
+                onClick = {
+                    page = "login"
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Login")
+            }
+        }
+    }
+
+    @Composable
+    fun LoginScreen(
+        onLoginClick: (email: String, password: String) -> Unit
+    ) {
+        var email by remember { mutableStateOf("") }
+        var password by remember { mutableStateOf("") }
+        var showPassword by remember { mutableStateOf(false) }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Register", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            // Email
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Password
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val icon =
+                        if (showPassword) Icons.Default.ThumbUp else Icons.Default.Star
+                    IconButton(onClick = { showPassword = !showPassword }) {
+                        Icon(imageVector = icon, contentDescription = null)
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                )
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Register Button
+            Button(
+                onClick = {
+                    if (password .isNotBlank() && email.isNotBlank()) {
+                        onLoginClick(email.trim(), password.trim())
+                        email = ""
+                        password = ""
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Login")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Register Button
+            Button(
+                onClick = {
+                   page = "register"
                 },
                 modifier = Modifier
                     .fillMaxWidth()
