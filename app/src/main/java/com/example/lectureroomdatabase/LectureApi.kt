@@ -30,7 +30,7 @@ class LectureApi : ComponentActivity() {
     var apiResponse by mutableStateOf("")
     var todoList by mutableStateOf<JSONArray?>(null)
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState : Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -39,7 +39,6 @@ class LectureApi : ComponentActivity() {
         setContent {
             LectureRoomDatabaseTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-
                     todoList?.let {
                         LazyColumn {
                             items(it.length()) { index ->
