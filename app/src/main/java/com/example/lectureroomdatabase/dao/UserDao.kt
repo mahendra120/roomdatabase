@@ -1,6 +1,5 @@
 package com.example.lectureroomdatabase.dao
 
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
