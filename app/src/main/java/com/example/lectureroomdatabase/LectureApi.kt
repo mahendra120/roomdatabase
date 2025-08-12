@@ -108,6 +108,9 @@ class LectureApi : ComponentActivity() {
 }
 
 /*
-* Model class
-* Json -> data class
+* API :
+* Postman -> api response
+* header api
+*
+* api key : Z92yyuZjXdErhMnK
 * */

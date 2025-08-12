@@ -2,4 +2,5 @@
     <string name="app_name">LectureRoomDatabase</string>
     <string name="title_activity_home">HomeActivity</string>
     <string name="title_activity_lecture_api">LectureApi</string>
+    <string name="title_activity_header_volley_api_lecture">HeaderVolleyApiLecture</string>
 </resources>
