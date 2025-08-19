@@ -5,7 +5,10 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material3.CardDefaults
@@ -21,6 +26,7 @@ import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -61,6 +67,7 @@ import org.json.JSONObject
 class HeaderVolleyApiLecture : ComponentActivity() {
     val list = mutableStateListOf<UserData>()
     var isShowDialog by mutableStateOf(false)
+    var editUser: UserData? = null
 
     @OptIn(ExperimentalGlideComposeApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,14 +99,51 @@ class HeaderVolleyApiLecture : ComponentActivity() {
                                     .padding(10.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
                             ) {
-                                Text(
-                                    list[it].name,
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
-                                )
-                                Text(
-                                    list[it].email,
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
-                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                    ) {
+                                        Text(
+                                            list[it].name,
+                                            modifier = Modifier.padding(
+                                                horizontal = 20.dp,
+                                                vertical = 5.dp
+                                            )
+                                        )
+                                        Text(
+                                            list[it].email,
+                                            modifier = Modifier.padding(
+                                                horizontal = 20.dp,
+                                                vertical = 5.dp
+                                            )
+                                        )
+                                    }
+//                                    Spacer(modifier = Modifier.fillMaxWidth().weight(1f))
+                                    IconButton(onClick = {
+                                        editUser = list[it]
+                                        isShowDialog = true
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    }
+                                    IconButton(onClick = {
+                                        deleteUser(list[it].id)
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -111,11 +155,12 @@ class HeaderVolleyApiLecture : ComponentActivity() {
 
     @Composable
     private fun showAddUserDialog() {
-        var name by remember { mutableStateOf("") }
-        var email by remember { mutableStateOf("") }
-        var password by remember { mutableStateOf("") }
+        var name by remember { mutableStateOf(editUser?.name ?: "") }
+        var email by remember { mutableStateOf(editUser?.email ?: "") }
+        var password by remember { mutableStateOf(editUser?.pasword ?: "") }
 
         Dialog(onDismissRequest = {
+            editUser = null
             isShowDialog = false
         }) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -153,7 +198,11 @@ class HeaderVolleyApiLecture : ComponentActivity() {
                     )
                 )
                 ElevatedButton(onClick = {
-                    addUser(name, email, password)
+                    editUser?.let {
+                        updateUser(name, email, password, it.id)
+                    } ?: run {
+                        addUser(name, email, password)
+                    }
                     isShowDialog = false
                 }) {
                     Text("Submit")
@@ -208,6 +257,73 @@ class HeaderVolleyApiLecture : ComponentActivity() {
         queue.add(stringRequest)
     }
 
+    fun updateUser(name: String, email: String, password: String, id: String) {
+        var data = JSONObject()
+        data.put("name", name)
+        data.put("email", email)
+        data.put("pasword", password)
+
+        val url = "https://generateapi.onrender.com/api/user/$id"
+        val stringRequest = object : JsonObjectRequest(
+            Request.Method.PATCH, url, data,
+            Response.Listener<JSONObject> { response ->
+                Log.d("=====", "fetchData: $response")
+                fetchData()
+            },
+            Response.ErrorListener {
+                Log.d("=====", "error: ${it.networkResponse.data.toString()}")
+            }) {
+            override fun getHeaders(): Map<String?, String?>? {
+                return mapOf(
+                    Pair("Authorization", "Z92yyuZjXdErhMnK")
+                )
+            }
+
+            override fun getBodyContentType(): String? {
+                return "application/json"
+            }
+
+//            override fun getBody(): ByteArray? {
+//                var data = JSONObject()
+//                data.put("name", name)
+//                data.put("email", email)
+//                data.put("password", password)
+//                return data.toString().toByteArray(charset = Charsets.UTF_8)
+//            }
+
+//            override fun getParams(): Map<String?, String?>? {
+//                return mapOf(
+//                    Pair("name", name),
+//                    Pair("email", email),
+//                    Pair("pasword", password),
+//                )
+//            }
+        }
+        val queue = Volley.newRequestQueue(this)
+        queue.add(stringRequest)
+    }
+
+    fun deleteUser(id: String) {
+        val url = "https://generateapi.onrender.com/api/user/$id"
+        val stringRequest = object : StringRequest(
+            Request.Method.DELETE, url,
+            Response.Listener<String> { response ->
+                Log.d("=====", "fetchData: $response")
+                fetchData()
+            },
+            Response.ErrorListener {
+                Log.d("=====", "error: ${it.networkResponse.data.toString()}")
+            }) {
+            override fun getHeaders(): Map<String?, String?>? {
+                return mapOf(
+                    Pair("Authorization", "Z92yyuZjXdErhMnK")
+                )
+            }
+        }
+        val queue = Volley.newRequestQueue(this)
+        queue.add(stringRequest)
+    }
+
     fun fetchData() {
         val url = "https://generateapi.onrender.com/api/user"
         val stringRequest = object : StringRequest(
@@ -236,3 +352,15 @@ class HeaderVolleyApiLecture : ComponentActivity() {
     }
 
 }
+
+/*
+*   header api crud operations
+* CRUD
+* C -> Create
+* R -> Read
+* U -> Update
+* D -> Delete
+*
+* Retrofit?
+*
+* */

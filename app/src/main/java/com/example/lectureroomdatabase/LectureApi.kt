@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Card
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -25,17 +26,24 @@ import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import com.example.lectureroomdatabase.model.Product
+import com.example.lectureroomdatabase.model.ProductModel
 import com.example.lectureroomdatabase.model.TodoData
 import com.example.lectureroomdatabase.model.Todos
 import com.example.lectureroomdatabase.ui.theme.LectureRoomDatabaseTheme
+import com.google.gson.Gson
 import org.json.JSONArray
 import org.json.JSONObject
 
 class LectureApi : ComponentActivity() {
 
-    var apiResponse by mutableStateOf("")
-    var todoList = mutableStateListOf<Todos>()
+    var mainProductList = ArrayList<Product>(0)
+    val productList = mutableStateListOf<Product>()
+//    var categoryList = mutableStateListOf<String>()
 
+    @OptIn(ExperimentalGlideComposeApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -43,24 +51,39 @@ class LectureApi : ComponentActivity() {
         setContent {
             LectureRoomDatabaseTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    if (todoList.isNotEmpty()) {
+//                    if (categoryList.isNotEmpty()) {
+//                        Box(
+//                            modifier = Modifier
+//                                .fillMaxSize()
+//                                .padding(innerPadding)
+//                        ) {
+//                            LazyColumn(contentPadding = PaddingValues(15.dp)) {
+//                                items(categoryList.size) { index ->
+//                                    val categoryName = categoryList[index]
+//                                    Text(categoryName)
+//                                    Spacer(modifier = Modifier.height(20.dp))
+//
+//                                }
+//                            }
+//                        }
+//                    } else {
+                    if (productList.isNotEmpty()) {
                         LazyColumn(contentPadding = PaddingValues(15.dp)) {
-                            items(todoList.size) { index ->
-                                val todo = todoList[index]
-                                Text(todo.todo ?: "")
-                                Text(todo.completed.toString())
-                                Text(todo.userId.toString())
+                            items(productList.size) { index ->
+                                val product = productList[index]
+                                Card {
+                                    GlideImage(product.thumbnail, contentDescription = null)
+                                    Text(product.category)
+                                }
                                 Spacer(modifier = Modifier.height(20.dp))
                             }
                         }
                     } else {
                         Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                            modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "loading...",
-                                modifier = Modifier.padding(innerPadding)
+                                text = "loading...", modifier = Modifier.padding(innerPadding)
                             )
                         }
                     }
@@ -70,35 +93,35 @@ class LectureApi : ComponentActivity() {
     }
 
     fun fetchData() {
-        val url = "https://dummyjson.com/todos"
-        val stringRequest = StringRequest(
-            Request.Method.GET, url,
-            Response.Listener<String> { response ->
-                apiResponse = response
+        val url = "https://dummyjson.com/products?limit=194"
+        val stringRequest =
+            StringRequest(Request.Method.GET, url, Response.Listener<String> { response ->
+                var apiResponse = response
+                val productMode = Gson().fromJson(response.toString(), ProductModel::class.java)
+                // way-1
+                productList.clear()
+//                productList.addAll(productMode.products)
+//                productList.forEach {
+//                    if (!categoryList.contains(it.category)) {
+//                        categoryList.add(it.category)
+//                    }
+//                }
 
-                val data = JSONObject(apiResponse)
-                val todos = data.getJSONArray("todos")
-                val list = ArrayList<Todos>()
-                for (i in 0 until todos.length()) {
-                    val d = todos.getJSONObject(i)
-                    val todos = Todos(
-                        id = d.getInt("id"),
-                        todo = d.getString("todo"),
-                        completed = d.getBoolean("completed"),
-                        userId = d.getInt("userId"),
-                    )
-                    list.add(todos)
-                }
-                val todoData = TodoData(
-                    todos = list,
-                    total = data.getInt("total"),
-                    skip = data.getInt("skip"),
-                    limit = data.getInt("limit"),
-                )
-                todoList.addAll(todoData.todos)
-            },
-            Response.ErrorListener {
-                apiResponse = "That didn't work!"
+                // way-2
+//                val categorySet = mutableSetOf<String>()
+//                val mainProductList = productMode.products
+//                mainProductList.forEach {
+//                    categorySet.add(it.category)
+////                    Log.d("=====", "fetchData: $categorySet")
+//                }
+//                categoryList.addAll(categorySet)
+
+                // way-3
+                mainProductList = productMode.products
+                productList.addAll(mainProductList.distinctBy { it.category })
+
+            }, Response.ErrorListener {
+                Log.d("=====", "fetchData: That didn't work!")
             })
 
         val queue = Volley.newRequestQueue(this)

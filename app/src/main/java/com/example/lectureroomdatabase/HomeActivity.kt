@@ -53,7 +53,6 @@ class HomeActivity : ComponentActivity() {
                                 ElevatedCard {
                                     Text(user.email)
                                 }
-
                             }
                         }
                     }
